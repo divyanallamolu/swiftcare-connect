@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useHospitals, useEmergencies, useUpdateHospitalQueue, useUpdateEmergency } from '@/hooks/useHospitals';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QueueIndicator } from '@/components/QueueIndicator';
+import { EmergencyPhotoViewer } from '@/components/EmergencyPhotoViewer';
+import { CallHospitalButton } from '@/components/CallHospitalButton';
 import { 
   LayoutDashboard, 
   Plus, 
@@ -14,14 +17,24 @@ import {
   XCircle,
   Clock,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  MapPin,
+  Phone
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function DashboardScreen() {
+  const { hospitalId: userHospitalId } = useAuth();
   const { hospitals, isLoading: hospitalsLoading } = useHospitals();
   const [selectedHospitalId, setSelectedHospitalId] = useState<string>('');
+  
+  // Auto-select hospital for hospital users
+  useEffect(() => {
+    if (userHospitalId && !selectedHospitalId) {
+      setSelectedHospitalId(userHospitalId);
+    }
+  }, [userHospitalId, selectedHospitalId]);
   
   const selectedHospital = hospitals.find(h => h.id === selectedHospitalId);
   const { emergencies, isLoading: emergenciesLoading } = useEmergencies(selectedHospitalId || undefined);
@@ -36,7 +49,7 @@ export default function DashboardScreen() {
     const currentValue = type === 'emergency' 
       ? selectedHospital.emergency_queue 
       : selectedHospital.general_queue;
-    const newValue = Math.max(0, currentValue + delta);
+    const newValue = Math.max(0, (currentValue || 0) + delta);
 
     try {
       await updateQueue.mutateAsync({
@@ -58,7 +71,7 @@ export default function DashboardScreen() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'pending': return 'bg-warning text-warning-foreground';
       case 'accepted': return 'bg-success text-success-foreground';
@@ -90,18 +103,20 @@ export default function DashboardScreen() {
           </p>
         </div>
         
-        <Select value={selectedHospitalId} onValueChange={setSelectedHospitalId}>
-          <SelectTrigger className="w-full sm:w-[280px]">
-            <SelectValue placeholder="Select a hospital" />
-          </SelectTrigger>
-          <SelectContent>
-            {hospitals.map((hospital) => (
-              <SelectItem key={hospital.id} value={hospital.id}>
-                {hospital.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!userHospitalId && (
+          <Select value={selectedHospitalId} onValueChange={setSelectedHospitalId}>
+            <SelectTrigger className="w-full sm:w-[280px]">
+              <SelectValue placeholder="Select a hospital" />
+            </SelectTrigger>
+            <SelectContent>
+              {hospitals.map((hospital) => (
+                <SelectItem key={hospital.id} value={hospital.id}>
+                  {hospital.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {!selectedHospitalId ? (
@@ -129,14 +144,14 @@ export default function DashboardScreen() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="text-4xl font-bold text-destructive">
-                    {selectedHospital.emergency_queue}
+                    {selectedHospital.emergency_queue || 0}
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="icon"
                       variant="outline"
                       onClick={() => handleQueueChange('emergency', -1)}
-                      disabled={selectedHospital.emergency_queue === 0 || updateQueue.isPending}
+                      disabled={(selectedHospital.emergency_queue || 0) === 0 || updateQueue.isPending}
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
@@ -151,7 +166,7 @@ export default function DashboardScreen() {
                   </div>
                 </div>
                 <QueueIndicator 
-                  count={selectedHospital.emergency_queue} 
+                  count={selectedHospital.emergency_queue || 0} 
                   type="emergency" 
                   className="mt-3"
                 />
@@ -169,14 +184,14 @@ export default function DashboardScreen() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="text-4xl font-bold text-primary">
-                    {selectedHospital.general_queue}
+                    {selectedHospital.general_queue || 0}
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="icon"
                       variant="outline"
                       onClick={() => handleQueueChange('general', -1)}
-                      disabled={selectedHospital.general_queue === 0 || updateQueue.isPending}
+                      disabled={(selectedHospital.general_queue || 0) === 0 || updateQueue.isPending}
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
@@ -191,7 +206,7 @@ export default function DashboardScreen() {
                   </div>
                 </div>
                 <QueueIndicator 
-                  count={selectedHospital.general_queue} 
+                  count={selectedHospital.general_queue || 0} 
                   type="general" 
                   className="mt-3"
                 />
@@ -204,11 +219,11 @@ export default function DashboardScreen() {
             <CardContent className="p-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold">{selectedHospital.avg_wait_time_minutes}</div>
+                  <div className="text-2xl font-bold">{selectedHospital.avg_wait_time_minutes || 0}</div>
                   <div className="text-xs text-muted-foreground">Avg Wait (min)</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{selectedHospital.specializations.length}</div>
+                  <div className="text-2xl font-bold">{selectedHospital.specializations?.length || 0}</div>
                   <div className="text-xs text-muted-foreground">Specializations</div>
                 </div>
                 <div>
@@ -252,54 +267,85 @@ export default function DashboardScreen() {
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : emergencies.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {emergencies.slice(0, 10).map((emergency) => (
-                    <div 
-                      key={emergency.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge className={getStatusColor(emergency.status)}>
-                          {emergency.status}
-                        </Badge>
-                        <div>
-                          <div className="font-medium capitalize">
-                            {emergency.emergency_type} Emergency
+                    <Card key={emergency.id} className="border-l-4 border-l-warning">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Badge className={getStatusColor(emergency.status)}>
+                                {emergency.status}
+                              </Badge>
+                              <span className="font-medium capitalize">
+                                {emergency.emergency_type} Emergency
+                              </span>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatDistanceToNow(new Date(emergency.created_at), { addSuffix: true })}
+                              </span>
+                              
+                              {emergency.patient_latitude && emergency.patient_longitude && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {emergency.patient_latitude.toFixed(3)}, {emergency.patient_longitude.toFixed(3)}
+                                </span>
+                              )}
+                              
+                              {emergency.hospital_score && (
+                                <span>Score: {emergency.hospital_score.toFixed(0)}</span>
+                              )}
+                            </div>
+                            
+                            {emergency.patient_phone && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.location.href = `tel:${emergency.patient_phone}`}
+                              >
+                                <Phone className="w-3 h-3 mr-1" />
+                                Call Patient
+                              </Button>
+                            )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(emergency.created_at), { addSuffix: true })}
-                            {emergency.hospital_score && (
-                              <span className="ml-2">• Score: {emergency.hospital_score}</span>
+                          
+                          <div className="flex items-center gap-2">
+                            <EmergencyPhotoViewer 
+                              photoUrl={emergency.photo_url}
+                              emergencyType={emergency.emergency_type}
+                            />
+                            
+                            {emergency.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-success border-success hover:bg-success hover:text-success-foreground"
+                                  onClick={() => handleEmergencyAction(emergency.id, 'accepted')}
+                                  disabled={updateEmergency.isPending}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                  Accept
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  onClick={() => handleEmergencyAction(emergency.id, 'rejected')}
+                                  disabled={updateEmergency.isPending}
+                                >
+                                  <XCircle className="w-4 h-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </>
                             )}
                           </div>
                         </div>
-                      </div>
-                      
-                      {emergency.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-success border-success hover:bg-success hover:text-success-foreground"
-                            onClick={() => handleEmergencyAction(emergency.id, 'accepted')}
-                            disabled={updateEmergency.isPending}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleEmergencyAction(emergency.id, 'rejected')}
-                            disabled={updateEmergency.isPending}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               ) : (

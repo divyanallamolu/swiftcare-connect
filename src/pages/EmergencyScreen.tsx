@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { EmergencyTypeSelector } from '@/components/EmergencyTypeSelector';
 import { HospitalCard } from '@/components/HospitalCard';
+import { PhotoUpload } from '@/components/PhotoUpload';
+import { AIAnalysis } from '@/components/AIAnalysis';
+import { CallHospitalButton } from '@/components/CallHospitalButton';
 import { useHospitals, useCreateEmergency } from '@/hooks/useHospitals';
-import { rankHospitals } from '@/utils/scoringAlgorithm';
+import { rankHospitals, calculateDistance } from '@/utils/scoringAlgorithm';
 import { EmergencyType, HospitalWithScore } from '@/types/hospital';
-import { Ambulance, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { Ambulance, MapPin, Loader2, AlertCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Default location (NYC for demo)
@@ -19,10 +24,13 @@ export default function EmergencyScreen() {
   const createEmergency = useCreateEmergency();
   
   const [emergencyType, setEmergencyType] = useState<EmergencyType>('general');
+  const [emergencyDescription, setEmergencyDescription] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string>('');
   const [userLocation, setUserLocation] = useState(DEFAULT_LOCATION);
   const [rankedHospitals, setRankedHospitals] = useState<HospitalWithScore[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState<HospitalWithScore | null>(null);
 
   const handleGetLocation = () => {
     if (navigator.geolocation) {
@@ -57,6 +65,7 @@ export default function EmergencyScreen() {
     setRankedHospitals(ranked.slice(0, 5));
     setHasSearched(true);
     setIsSearching(false);
+    setSelectedHospital(null);
     
     if (ranked.length > 0) {
       toast.success(`Found ${ranked.length} hospitals nearby`);
@@ -66,20 +75,27 @@ export default function EmergencyScreen() {
   };
 
   const handleSelectHospital = async (hospital: HospitalWithScore) => {
+    setSelectedHospital(hospital);
+  };
+
+  const handleConfirmRouting = async () => {
+    if (!selectedHospital) return;
+    
     try {
       await createEmergency.mutateAsync({
-        hospital_id: hospital.id,
+        hospital_id: selectedHospital.id,
         emergency_type: emergencyType,
         patient_latitude: userLocation.lat,
         patient_longitude: userLocation.lng,
         status: 'pending',
-        hospital_score: hospital.score,
+        hospital_score: selectedHospital.score,
         patient_name: null,
         patient_phone: null,
+        photo_url: photoUrl || null,
       });
       
-      toast.success(`Emergency routed to ${hospital.name}`);
-      navigate('/dashboard');
+      toast.success(`Emergency routed to ${selectedHospital.name}`);
+      navigate('/hospitals');
     } catch (error) {
       toast.error('Failed to create emergency');
     }
@@ -116,6 +132,30 @@ export default function EmergencyScreen() {
             />
           </CardContent>
         </Card>
+
+        {/* Emergency Description */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Describe the Emergency (Optional)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Briefly describe the emergency situation to help the AI provide better recommendations..."
+              value={emergencyDescription}
+              onChange={(e) => setEmergencyDescription(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Photo Upload */}
+        <PhotoUpload 
+          onPhotoUploaded={setPhotoUrl}
+          currentPhotoUrl={photoUrl}
+        />
 
         {/* Location */}
         <Card>
@@ -167,13 +207,51 @@ export default function EmergencyScreen() {
             {rankedHospitals.length > 0 ? (
               <div className="space-y-3">
                 {rankedHospitals.map((hospital, index) => (
-                  <HospitalCard
-                    key={hospital.id}
-                    hospital={hospital}
-                    rank={index + 1}
-                    isTopChoice={index === 0}
-                    onSelect={() => handleSelectHospital(hospital)}
-                  />
+                  <div key={hospital.id} className="space-y-2">
+                    <HospitalCard
+                      hospital={hospital}
+                      rank={index + 1}
+                      isTopChoice={index === 0}
+                      onSelect={() => handleSelectHospital(hospital)}
+                    />
+                    
+                    {/* Show AI Analysis and Call button for selected hospital */}
+                    {selectedHospital?.id === hospital.id && (
+                      <div className="ml-4 space-y-3">
+                        <AIAnalysis
+                          emergencyDescription={emergencyDescription}
+                          emergencyType={emergencyType}
+                          hospitalName={hospital.name}
+                          hospitalSpecializations={hospital.specializations || []}
+                          queueLength={hospital.emergency_queue || 0}
+                          distance={calculateDistance(
+                            userLocation.lat,
+                            userLocation.lng,
+                            hospital.latitude,
+                            hospital.longitude
+                          )}
+                        />
+                        
+                        <div className="flex gap-2">
+                          <CallHospitalButton 
+                            phone={hospital.phone}
+                            hospitalName={hospital.name}
+                            className="flex-1"
+                          />
+                          <Button 
+                            className="flex-1 gradient-primary"
+                            onClick={handleConfirmRouting}
+                            disabled={createEmergency.isPending}
+                          >
+                            {createEmergency.isPending ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : null}
+                            Confirm & Route
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (
