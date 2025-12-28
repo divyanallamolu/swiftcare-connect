@@ -1,73 +1,54 @@
-# Welcome to your Lovable project
+# Smart Healthcare Emergency Routing System
 
-## Project info
+A real-time emergency healthcare platform that helps patients reach the most suitable hospital faster using live data, maps, and AI.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Problem Statement
+In emergency situations, patients lose critical time deciding which hospital to go to. Hospitals also lack prior information about incoming emergencies. This project solves both problems using smart routing and real-time alerts.
 
-## How can I edit this code?
+## Solution
+- Suggests best nearby hospitals based on distance, queue load, and specialization
+- Provides real-time navigation using Google Maps
+- Sends emergency alerts to hospitals before patient arrival
+- Allows image upload in accident cases so doctors can prepare in advance
 
-There are several ways of editing your application.
+## Technologies Used (Google Technologies)
+- Flutter / React (Lovable frontend)
+- Firebase (Authentication, Realtime Database)
+- Google Maps APIs (Directions, Distance Matrix, Places)
+- Gemini API (understanding emergency context)
+- Google Cloud Platform
 
-**Use Lovable**
+## Features
+- User & Hospital Authentication
+- Emergency type selection
+- Live hospital queue data
+- Call doctor directly
+- Accident image upload for doctor understanding
+- Real-time directions to hospital
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## How to Run Locally
 
-Changes made via Lovable will be committed automatically to this repo.
+1. Clone the repository
+   git clone https://github.com/divyanallamolu/REPO_NAME.git
 
-**Use your preferred IDE**
+2. Navigate to the project directory
+   cd REPO_NAME
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+3. Install dependencies
+   npm install
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+4. Create `.env` file and add:
+   VITE_GOOGLE_MAPS_API_KEY=YOUR_API_KEY  
+   VITE_GEMINI_API_KEY=YOUR_API_KEY
 
-Follow these steps:
+5. Start the development server
+   npm run dev
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+App runs at:
+http://localhost:5173
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Live Demo
+(Add Vercel deployment link here)
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Team
+Divya
