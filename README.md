@@ -13,7 +13,7 @@ In emergency situations, patients lose critical time deciding which hospital to 
 
 ## Technologies Used (Google Technologies)
 - Flutter / React (Lovable frontend)
-- Firebase (Authentication, Realtime Database)
+- Firebase (Authentication, Database)
 - Google Maps APIs (Directions, Distance Matrix, Places)
 - Gemini API (understanding emergency context)
 - Google Cloud Platform
@@ -48,7 +48,6 @@ App runs at:
 http://localhost:5173
 
 ## Live Demo
-(Add Vercel deployment link here)
-
+https://healthcare-emergency.vercel.app
 ## Team
-Divya
+credverse
