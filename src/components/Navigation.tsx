@@ -1,18 +1,23 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Ambulance, Building2, LayoutDashboard, Menu, X } from 'lucide-react';
+import { Ambulance, Building2, LayoutDashboard, Menu, X, LogOut, User } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-
-const navLinks = [
-  { href: '/', label: 'Emergency', icon: Ambulance },
-  { href: '/hospitals', label: 'Hospitals', icon: Building2 },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-];
+import { useAuth } from '@/hooks/useAuth';
 
 export function Navigation() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, role, signOut } = useAuth();
+
+  // Don't show navigation on auth page
+  if (location.pathname === '/auth') return null;
+
+  const navLinks = [
+    { href: '/', label: 'Emergency', icon: Ambulance, roles: ['patient', 'hospital'] },
+    { href: '/hospitals', label: 'Hospitals', icon: Building2, roles: ['patient', 'hospital'] },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['hospital'] },
+  ].filter(link => !role || link.roles.includes(role));
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -43,6 +48,18 @@ export function Navigation() {
               </Button>
             </Link>
           ))}
+          
+          {user && (
+            <div className="flex items-center gap-2 ml-4 pl-4 border-l">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <User className="w-3 h-3" />
+                {role === 'hospital' ? 'Hospital' : 'Patient'}
+              </span>
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </nav>
 
         {/* Mobile Menu Button */}
@@ -77,6 +94,20 @@ export function Navigation() {
               </Button>
             </Link>
           ))}
+          
+          {user && (
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-2 text-destructive"
+              onClick={() => {
+                signOut();
+                setMobileMenuOpen(false);
+              }}
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
+          )}
         </nav>
       )}
     </header>
